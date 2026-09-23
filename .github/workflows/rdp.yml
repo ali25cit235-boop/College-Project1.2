@@ -1,4 +1,4 @@
-name: Windows RDP (Auto Fetch Credentials)
+name: Windows RDP (Pyngrok Direct)
 
 on:
   workflow_dispatch:
@@ -19,35 +19,27 @@ jobs:
       run: |
         cmd /c "net user runneradmin Pass123456!@#"
 
-    - name: Install & Configure Ngrok
+    - name: Setup Pyngrok & Start RDP Tunnel
       run: |
-        choco install ngrok
-        ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+        pip install pyngrok
+        python -c "
+        from pyngrok import ngrok
+        import os
 
-    - name: Start Ngrok Tunnel
-      run: |
-        Start-Process -FilePath "ngrok" -ArgumentList "tcp 3389"
+        authtoken = '${{ secrets.NGROK_AUTH_TOKEN }}'
+        ngrok.set_auth_token(authtoken)
 
-    - name: Fetch and Display RDP Credentials
-      run: |
-        $maxRetries = 15
-        $count = 0
-        $address = ""
-        while ($count -lt $maxRetries) {
-            Start-Sleep -Seconds 3
-            try {
-                $tunnel = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels" -ErrorAction Stop
-                $address = $tunnel.tunnels[0].public_url.Replace("tcp://", "")
-                if ($address) { break }
-            } catch {
-                $count++
-            }
-        }
-        Write-Output "=========================================="
-        Write-Output "IP / ADDRESS : $address"
-        Write-Output "USERNAME     : runneradmin"
-        Write-Output "PASSWORD     : Pass123456!@#"
-        Write-Output "=========================================="
+        tunnel = ngrok.connect(3389, 'tcp')
+        clean_url = tunnel.public_url.replace('tcp://', '')
+
+        print('\n' + '='*45)
+        print('🚀 WINDOWS RDP DETAILS READY!')
+        print('='*45)
+        print(f'🌐 IP / ADDRESS : {clean_url}')
+        print('👤 USERNAME     : runneradmin')
+        print('🔑 PASSWORD     : Pass123456!@#')
+        print('='*45 + '\n')
+        "
 
     - name: Keep RDP Alive
       run: |
