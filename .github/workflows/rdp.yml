@@ -1,0 +1,57 @@
+name: Windows RDP (Auto Fetch Credentials)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+    - name: Enable Remote Desktop (RDP)
+      run: |
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0
+
+    - name: Set RDP User Password
+      run: |
+        cmd /c "net user runneradmin Pass123456!@#"
+
+    - name: Install & Configure Ngrok
+      run: |
+        choco install ngrok
+        ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+
+    - name: Start Ngrok Tunnel
+      run: |
+        Start-Process -FilePath "ngrok" -ArgumentList "tcp 3389"
+
+    - name: Fetch and Display RDP Credentials
+      run: |
+        python -c "
+        import json, urllib.request, time
+
+        url = 'http://127.0.0.1:4040/api/tunnels'
+        for i in range(15):
+            try:
+                response = urllib.request.urlopen(url)
+                data = json.loads(response.read().decode())
+                public_url = data['tunnels'][0]['public_url']
+                clean_url = public_url.replace('tcp://', '')
+                print('\n' + '='*45)
+                print('🚀 WINDOWS RDP DETAILS READY!')
+                print('='*45)
+                print(f'🌐 IP / ADDRESS : {clean_url}')
+                print('👤 USERNAME     : runneradmin')
+                print('🔑 PASSWORD     : Pass123456!@#')
+                print('='*45 + '\n')
+                break
+            except Exception:
+                time.sleep(2)
+        "
+
+    - name: Keep RDP Alive
+      run: |
+        Start-Sleep -Seconds 21600
