@@ -23,12 +23,11 @@ jobs:
       run: |
         Start-Process -FilePath "ssh" -ArgumentList "-p 443 -R0:localhost:3389 tcp@a.pinggy.io -o StrictHostKeyChecking=no" -RedirectStandardOutput "pinggy.log"
         Start-Sleep -Seconds 12
-        $log = Get-Content pinggy.log
-        $line = $log | Select-String -Pattern "a.pinggy.io:"
         Write-Host "=========================================="
-        Write-Host "🚀 RDP CONNECTION DETAILS"
+        Write-Host "🚀 PINGGY OUTPUT LOGS"
         Write-Host "=========================================="
-        Write-Host $line
+        Get-Content pinggy.log
+        Write-Host "=========================================="
         Write-Host "USERNAME     : runneradmin"
         Write-Host "PASSWORD     : Pass123456!@#"
         Write-Host "=========================================="
