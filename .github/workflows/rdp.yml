@@ -1,4 +1,4 @@
-name: Windows RDP (Localtonet 100% Working)
+name: Windows RDP (100% Working Pinggy)
 
 on:
   workflow_dispatch:
@@ -19,21 +19,18 @@ jobs:
       run: |
         cmd /c "net user runneradmin Pass123456!@#"
 
-    - name: Setup & Start Localtonet RDP
+    - name: Start Pinggy RDP Tunnel
       run: |
-        Invoke-WebRequest -Uri "https://localtonet.com/download/localtonet-win-x64.zip" -OutFile "localtonet.zip"
-        Expand-Archive -Path "localtonet.zip" -DestinationPath "."
-        ./localtonet.exe authtoken ${{ secrets.LOCALTONET_TOKEN }}
+        $sshProcess = Start-Process -FilePath "ssh" -ArgumentList "-o StrictHostKeyChecking=no -o ServerAliveInterval=30 -p 443 -R 0:localhost:3389 tcp@a.pinggy.io" -RedirectStandardOutput "pinggy.log" -PassThru
+        Start-Sleep -Seconds 12
         
-        # Create TCP Tunnel for Port 3389
-        Start-Process -FilePath ".\localtonet.exe" -ArgumentList "tcp 3389" -RedirectStandardOutput "tunnel.log"
-        Start-Sleep -Seconds 10
-
         Write-Host "=========================================="
-        Write-Host "🚀 RDP DETAILS READY FOR MSTSC"
+        Write-Host "🚀 RDP CONNECTION DETAILS"
         Write-Host "=========================================="
-        Get-Content tunnel.log | Select-String -Pattern "localtonet.com:"
+        $log = Get-Content pinggy.log
+        $log | Select-String -Pattern "tcp://"
         Write-Host "USERNAME     : runneradmin"
         Write-Host "PASSWORD     : Pass123456!@#"
         Write-Host "=========================================="
+        
         Start-Sleep -Seconds 21600
