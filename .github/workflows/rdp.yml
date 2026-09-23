@@ -30,9 +30,19 @@ jobs:
 
     - name: Fetch and Display RDP Credentials
       run: |
-        Start-Sleep -Seconds 5
-        $tunnel = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels"
-        $address = $tunnel.tunnels[0].public_url.Replace("tcp://", "")
+        $maxRetries = 15
+        $count = 0
+        $address = ""
+        while ($count -lt $maxRetries) {
+            Start-Sleep -Seconds 3
+            try {
+                $tunnel = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels" -ErrorAction Stop
+                $address = $tunnel.tunnels[0].public_url.Replace("tcp://", "")
+                if ($address) { break }
+            } catch {
+                $count++
+            }
+        }
         Write-Output "=========================================="
         Write-Output "IP / ADDRESS : $address"
         Write-Output "USERNAME     : runneradmin"
